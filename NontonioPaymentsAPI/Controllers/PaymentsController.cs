@@ -44,7 +44,7 @@ public class PaymentsController : ControllerBase
             Mode = "payment",
 
             SuccessUrl =
-                "https://nontoniopaymentsapi.onrender.com/api/payments/success",
+                "https://nontoniopaymentsapi.onrender.com/api/payments/success?session_id={CHECKOUT_SESSION_ID}",
 
             CancelUrl =
                 "https://nontoniopaymentsapi.onrender.com/api/payments/cancel",
@@ -79,15 +79,48 @@ public class PaymentsController : ControllerBase
 
         return Ok(new
         {
-            url = session.Url
+            url = session.Url,
+            sessionId = session.Id
         });
     }
 
-    [HttpGet("success")]
-    public IActionResult Success()
+    [HttpGet("check-session/{sessionId}")]
+    public IActionResult CheckSession(
+        string sessionId)
     {
-        return Content(
-            "Pago realizado correctamente.");
+        try
+        {
+            var service =
+                new SessionService();
+
+            var session =
+                service.Get(sessionId);
+
+            return Ok(new
+            {
+                paid =
+                    session.PaymentStatus ==
+                    "paid",
+
+                paymentStatus =
+                    session.PaymentStatus
+            });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new
+            {
+                error = ex.Message
+            });
+        }
+    }
+
+    [HttpGet("success")]
+    public IActionResult Success(
+        string session_id)
+    {
+        return Redirect(
+            $"nontonio://payment-success?session_id={session_id}");
     }
 
     [HttpGet("cancel")]
