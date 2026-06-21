@@ -1,5 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Stripe;
+using Stripe.Checkout;
 using NontonioPaymentsAPI.Models;
 
 namespace NontonioPaymentsAPI.Controllers;
@@ -32,6 +33,68 @@ public class PaymentsController : ControllerBase
             clientSecret = intent.ClientSecret,
             paymentIntentId = intent.Id
         });
+    }
+
+    [HttpPost("create-checkout-session")]
+    public IActionResult CreateCheckoutSession(
+        [FromBody] PaymentIntentRequest request)
+    {
+        var options = new SessionCreateOptions
+        {
+            Mode = "payment",
+
+            SuccessUrl =
+                "https://nontoniopaymentsapi.onrender.com/api/payments/success",
+
+            CancelUrl =
+                "https://nontoniopaymentsapi.onrender.com/api/payments/cancel",
+
+            LineItems = new List<SessionLineItemOptions>
+            {
+                new SessionLineItemOptions
+                {
+                    Quantity = 1,
+
+                    PriceData =
+                        new SessionLineItemPriceDataOptions
+                        {
+                            Currency = "mxn",
+
+                            UnitAmount =
+                                (long)(request.Amount * 100),
+
+                            ProductData =
+                                new SessionLineItemPriceDataProductDataOptions
+                                {
+                                    Name = "Pedido NONTONIO"
+                                }
+                        }
+                }
+            }
+        };
+
+        var service = new SessionService();
+
+        var session = service.Create(options);
+
+        return Ok(new
+        {
+            url = session.Url
+        });
+    }
+
+    [HttpGet("success")]
+    public IActionResult Success()
+    {
+        return Content(
+            "Pago realizado correctamente.");
+    }
+
+    [HttpGet("cancel")]
+    public IActionResult Cancel()
+    {
+        return Content(
+            "Pago cancelado.");
     }
 
     [HttpGet("test")]
